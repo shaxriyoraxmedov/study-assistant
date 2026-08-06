@@ -1,0 +1,29 @@
+services:
+  qdrant:
+    # версия сервера должна совпадать с qdrant-client из requirements.txt:
+    # при расхождении мажора клиент ругается предупреждением о несовместимости
+    image: qdrant/qdrant:v1.19.0
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      # внутри сети compose Qdrant доступен по имени сервиса, а не localhost
+      - QDRANT_URL=http://qdrant:6333
+      # Ollama живёт на хосте: модели тянут GPU, в контейнер их заводить незачем
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - NUM_GPU_LAYERS=${NUM_GPU_LAYERS:-28}
+    depends_on:
+      - qdrant
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:

@@ -1,0 +1,77 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      # CPU-сборка torch: дефолтная тянет CUDA-колёса (~2.5 ГБ), которые
+      # раннеру без видеокарты не нужны и превращают установку в 5+ минут
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Tests
+        run: pytest -q
+
+  # Сборка и публикация — один job: собирать образ дважды (проверить + выложить)
+  # значит платить за одно и то же вдвое. На PR job доходит до сборки и
+  # останавливается перед push, на main — публикует.
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write        # без этого push в GHCR отваливается на 403
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # выдаётся автоматически, заводить секрет не нужно
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          # latest — всегда свежий main; sha — конкретный коммит, чтобы можно было
+          # откатиться на понятную версию, а не на «тот latest, что был вчера»
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

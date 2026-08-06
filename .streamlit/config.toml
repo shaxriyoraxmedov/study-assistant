@@ -1,0 +1,12 @@
+# Базовая тема Streamlit. Без неё он подставляет собственную, и встроенные виджеты
+# (аплоадер, алерты, статус) красятся не в цвет приложения. Значения совпадают
+# с палитрой DARK в app/ui.py — тема у приложения одна, тёмная.
+[theme]
+base = "dark"
+primaryColor = "#4ADE80"
+backgroundColor = "#0d0f0d"
+secondaryBackgroundColor = "#0a0b0a"
+textColor = "#F0F0EC"
+
+[browser]
+gatherUsageStats = false

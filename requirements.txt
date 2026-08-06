@@ -1,0 +1,7 @@
+ollama==0.6.2
+qdrant-client==1.19.0
+requests==2.34.2
+simpleeval==1.0.7
+streamlit==1.60.0
+langchain-text-splitters==0.3.8
+sentence-transformers==5.1.0

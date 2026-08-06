@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# E501 (длина строки) выключен: в UI лежат длинные строки CSS, разбивать их вредно
+ignore = ["E501"]
