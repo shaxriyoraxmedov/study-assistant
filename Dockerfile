@@ -3,9 +3,16 @@ FROM python:3.12-slim
 # не /app: пакет проекта тоже называется app/, и /app/app читается как ошибка
 WORKDIR /srv/study-assistant
 
-# зависимости отдельным слоем — правка кода не пересобирает torch (~120 МБ)
+# Зависимости отдельным слоем — правка кода не пересобирает torch.
+#
+# CPU-индекс PyTorch обязателен: дефолтный пакет тянет CUDA-рантайм NVIDIA
+# (~2.7 ГБ) + triton (~0.7 ГБ), из-за чего образ весил 9 ГБ вместо 3.
+# GPU здесь не нужен — reranker явно запускается на CPU (см. rag.py),
+# а Ollama работает на хосте и в контейнер не входит.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r requirements.txt
 
 COPY app/ ./app/
 COPY streamlit_app.py .
