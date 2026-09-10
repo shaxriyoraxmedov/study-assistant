@@ -5,3 +5,6 @@ simpleeval==1.0.7
 streamlit==1.60.0
 langchain-text-splitters==0.3.8
 sentence-transformers==5.1.0
+fastapi==0.141.1
+uvicorn==0.52.1
+python-multipart==0.0.32

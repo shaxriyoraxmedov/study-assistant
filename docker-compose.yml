@@ -9,6 +9,30 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
+  # REST API — тот же агент, но по HTTP. Swagger на http://localhost:8000/docs
+  api:
+    build: .
+    command: ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - NUM_GPU_LAYERS=${NUM_GPU_LAYERS:-28}
+    depends_on:
+      - qdrant
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+    restart: unless-stopped
+
+  # Веб-интерфейс. Обращается к агенту напрямую, а не через API: Streamlit
+  # держит состояние сессии в процессе, и лишний сетевой хоп ничего не даёт.
   app:
     build: .
     ports:
